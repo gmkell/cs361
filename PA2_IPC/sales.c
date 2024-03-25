@@ -46,26 +46,40 @@ int main(int argc, char* argv[])
     pid_t mypid;
     shmData *data;
 
+    // create shmkey by converting pathname to an IPC key 
     if (key = ftok("shmSegment.h", 'R') == -1)
     {
         perror("ftok key");
         exit(EXIT_FAILURE);  
     }
 
-    if ( (shmID = shmget(key, SHMEM_SIZE, IPC_CREAT | 0666)) == -1 )
+    // create shmem segment 
+    if ( (shmID = shmget(key, SHMEM_SIZE, IPC_CREAT | IPC_EXCL)) == -1 )
     {
         perror("shmget");
         fprintf(stderr, "Error code: %d", errno);
     }
 
+    // say what shmat does
     data = (shmData *) shmat(shmID, NULL, 0);
-    
+    if (data == (void *) -1) {
+        perror("shmat");
+        exit(EXIT_FAILURE);
+    }
+    mypid = getpid(); // the sales process pid
 
     // set up msgQue
     msgBuf msgQue;
     int msgStatus; 
     
     // create num_factories + 1 child processes based on num_lines (+1 for the Supervisor child process)
+    while(i < num_factories + 1)
+    {
+        fork();
+        i++;
+    }
+
+    // create reandevous semaphore for sales and supervisor 
 
 
 
