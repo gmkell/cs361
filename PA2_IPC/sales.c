@@ -41,7 +41,25 @@ int main(int argc, char* argv[])
     int num_factories = argv[0]; //specs say argv[1], but only 2 args passed 
     int num_parts = argv[1];
     // create & initialize shmem
+    int shmID;
+    key_t key;
+    pid_t mypid;
+    shmData *data;
 
+    if (key = ftok("shmSegment.h", 'R') == -1)
+    {
+        perror("ftok key");
+        exit(EXIT_FAILURE);  
+    }
+
+    if ( (shmID = shmget(key, SHMEM_SIZE, IPC_CREAT | 0666)) == -1 )
+    {
+        perror("shmget");
+        fprintf(stderr, "Error code: %d", errno);
+    }
+
+    data = (shmData *) shmat(shmID, NULL, 0);
+    
 
     // set up msgQue
     msgBuf msgQue;
