@@ -31,5 +31,5 @@ int main(argc, char* argv[])
 {
     // open the shmem created by Sales 
 
-    // 
+    // redirect stdout to 'supervisor.log'
 }

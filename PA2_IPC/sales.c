@@ -40,7 +40,8 @@ int main(int argc, char* argv[])
     
     int num_factories = argv[0]; //specs say argv[1], but only 2 args passed 
     int num_parts = argv[1];
-    // create & initialize shmem
+
+    // Step 1: set up shared mem & initialize its objects
     int shmID;
     key_t key;
     pid_t mypid;
@@ -68,19 +69,37 @@ int main(int argc, char* argv[])
     }
     mypid = getpid(); // the sales process pid
 
-    // set up msgQue
+    // Step 2: set up message queue and semaphores
     msgBuf msgQue;
     int msgStatus; 
+
+    // create reandevous semaphore for sales and supervisor 
+    // sales waits via semaphore for supervisor to finish
     
+
+    // Step 3: Fork/Execute Supervisor process
+
+
+    // Step 4: Fork/Execute all factory processes
     // create num_factories + 1 child processes based on num_lines (+1 for the Supervisor child process)
-    while(i < num_factories + 1)
+    while(i < num_factories)
     {
         fork();
         i++;
     }
+    // redirect all factory process stdout to 'factory.log'
+    // handle critical selection made by redirection of stdout using synchronization method
 
-    // create reandevous semaphore for sales and supervisor 
+    // Step 5: Wait for supervisor to indicate manufacturing is done
+    // sales waits via semaphore for supervisor to finish
 
+    // Step 6: Grant supervisor permission to print the Final Report
+
+    // Step 7: Clean up zombie processes (Supervisior + all Factories)
+    
+    // Step 8: destroy shmem
+
+    // Step 9: destroy semaphores and message queue
 
 
 }
