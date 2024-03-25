@@ -47,10 +47,42 @@ int main(argc, char* argv[])
         return 1;
     }
     // open the shmem created by Sales 
-
+    int msgStatus;
+    int supervisorKey;
+    int mailboxID, factoryMailboxID;
+    msgBuf incomingMsg;
     // open the message queue
 
+    // main work
+    while ( activeFactories > 0 )
+    {
+        // receive a message from msgQueue
+        msgStatus = msgrcv( ... , ... , MSG_INFO_SIZE, 0);
+        if (msgStatus == -1)
+        {
+            printf("Failed to receive message when %d factories running\n", activeFactories);
+        }
+        // validate the message 
+        if (incomingMsg.purpose == PRODUCTION_MSG)
+        {
+            printf("Factory %3d produced %5d parts in %4d miliSecs\n", ..., ..., ...);
+            // update per-factory productions aggregates (num parts built, num-iterations)
+        } elsif ( terminated )
+        {
+            printf("Factory %3d Terminated\n", ...);
+        } else 
+        {
+            // discard unsupported message 
+        }
+        
+
+    }
+
     // synchronize with Sales through NAMED semaphore
+    
+    // inform the Sales that manufacturing is done
+    // wait for permission from Sales to print final report
+    // print per-factory production aggregates sorted by factoryID.
 
 
 

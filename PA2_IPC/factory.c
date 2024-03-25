@@ -28,11 +28,13 @@
 
 int main(int argc, char* argv[])
 {
-    // get variables from command line and create others 
-    int capacity;
-    int duration;
-    int factory_ID = getpid();
+    // Step 1: get variables from command line and create others 
+    int factory_ID = argv[0];
+    int capacity = argv[1];
+    int duration = argv[2];
     
+    // Step 2: re-attach shmem and message queue
+
     // open message queue to be able to send messages to Supervisor 
     int myMailboxID, supervisorMailboxID;
     int msgStatus;
@@ -41,20 +43,20 @@ int main(int argc, char* argv[])
     key_t factoryKey, supervisorKey;
     char *supervisorPath;
     
+    // open shm to get access to its variables
 
 
-
-    // factory production 
+    // Step 3: factory production 
     int iterations, parts_made = 0; // initialize variables 
-    int remain = capacity; // number of parts still needing to be made 
+    int remain =  // get from shm
     while ( remain > 0 ) 
     {
         how_many = Math.min(remain, capacity);
         // update remain 
         remain = remain - how_many;
-        // create and send message to factory.log
+        // Step 4: create and send message to factory.log
         printf("Factory #%3d: Going to make %5d parts in %4d milliSecs", factory_ID, how_many, duration); // same duration even if I make less than my capacity
-        // create & send production message to Supervisior
+        // Step 5: create & send production message to Supervisior
         char somestring = "Factory # %d produced %d parts in %3d milliSecs", factory_ID, how_many, duration;
         factoryMsg.purpose = PRODUCTION_MSG;
         msgStatus = msgsnd(supervisorMailboxID, &factoryMsg, MSG_INFO_SIZE, 0);
@@ -71,7 +73,7 @@ int main(int argc, char* argv[])
         parts_made += how_many;
     }
 
-    // send a COMPLETION_MSG to the Supervisior once there are no more parts to make
+    // Step 6: send a COMPLETION_MSG to the Supervisior once there are no more parts to make
     factoryMsg.purpose = COMPLETION_MSG;
     
 }

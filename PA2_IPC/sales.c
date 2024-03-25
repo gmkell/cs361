@@ -29,14 +29,15 @@
 int main(int argc, char* argv[])
 {
     // set up synchronization mechanisms
-    if (argv[1] > MAXFACTORIES) 
+    if (atoi(argv[1]) > MAXFACTORIES) 
     {
-        printf("%d exceeded maximum number of factory lines allowed. \n", argv[0]);
+        printf("%d exceeded maximum number of factory lines allowed. \n", argv[1]);
         exit(EXIT_FAILURE); 
     }
     
-    int num_factories = argv[0]; //specs say argv[1], but only 2 args passed 
-    int num_parts = argv[1];
+    int num_factories = atoi(argv[1]);
+
+    int num_parts = atoi(argv[2]);
 
     printf("SALES: Will Request an Order of Size = %d parts\n", num_parts);
 
@@ -77,23 +78,55 @@ int main(int argc, char* argv[])
     // Step 3: Fork/Execute Supervisor process    
 
     // Step 4: Fork/Execute all factory processes
-    // create num_factories child processes based on num_factories
     printf("Creating %d Factory(ies)", num_factories);
 
+    // seed random number generator only ONCE
+    srandom(time(NULL));
+
+    // create num_factories child processes based on num_factories
     for (int i = 0; i < num_factories; i++)
-    {
+    {   
+        // Step 4.1 create the factory arguments using random()
+        int capacity = (int) random() % (50 - 10 + 1) + 10;
+        int duration = (int)random() % (1200 - 500 + 1) + 500; ; // in miliseconds 
+
         pid_t factory_pid = fork();
         if (factory_pid == -1) 
         {
             perror("fork child process");
             exit(EXIT_FAILURE);
         }
-        // create the factory arguments 
-        int capacity = ;
-        int duration = ; // in miliseconds 
-        printf("SALES: Factory #    %d was created, with Capacity=  %d and Duration=    %d",i , capacity, duration);
+
+        // child process
+        if (factory_pid == 0)
+        {
+            // convert arguments to string so they can used in excelp
+            char capacity_str[10];
+            char duration_str[10];
+            char factory_id_str[10];
+            sprintf(capacity_str, "%d", capacity);
+            sprintf(duration_str, "%d", duration);
+            sprintf(factory_id_str, "%d", factory_pid); 
+            
+            // Step 4.2: redirect all factory process stdout to 'factory.log'
+            int factory_log = open("factory.log", O_WRONLY, O_CREAT, O_TRUNC, 0666);
+            if (factory_log == -1)
+            {
+                perror("Failed to open factory.log\n");
+                exit(EXIT_FAILURE);
+            } 
+            dup2(factory_log, STDOUT_FILENO);
+            close(factory_log); // no need to keep open
+
+            // Step 4.3: send the arguments to the processes via execlp()
+            execlp("./factory", "factory", factory_id_str, capacity_str, duration_str, (char*)NULL);
+            perror("excelp factory\n");
+            exit(EXIT_FAILURE);
+
+        }
+        // Step 4.3 Parent process: continue to next iteration to fork next factory
+        printf("SALES: Factory #   %d was created, with Capacity=   %d  and Duration=   %d",i , capacity, duration);
     }
-    // redirect all factory process stdout to 'factory.log'
     // handle critical selection made by redirection of stdout using synchronization method
 
     // Step 5: Wait for supervisor to indicate manufacturing is done
