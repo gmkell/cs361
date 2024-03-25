@@ -29,7 +29,32 @@
 
 int main(argc, char* argv[])
 {
-    // open the shmem created by Sales 
+    // create/initialize variables 
+    int activeFactories = argv[1];
+    printf("SUPERVISOR: Started\n");
 
     // redirect stdout to 'supervisor.log'
+    FILE *log = fopen("supervisor.log", "w"); // create supervisor.log file
+    if (log == NULL)
+    {
+        perror("fopen() failed");
+        return 1;
+    }
+
+    if (freopen("supervisor.log", "w", stdout) == NULL) // redirect stdout
+    {
+        perror("freopen() failed");
+        return 1;
+    }
+    // open the shmem created by Sales 
+
+    // open the message queue
+
+    // synchronize with Sales through NAMED semaphore
+
+
+
+    // CLOSE LOG!! 
+    fclose(log);
+
 }

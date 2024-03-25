@@ -19,19 +19,16 @@
 #include <sys/ipc.h>
 #include <semaphore.h>
 #include <fcntl.h>
-#include <cstdlib>
-
 
 #include "shmSegment.h"
 #include "shmem.h"
 #include "wrappers.h"
 #include "message.h"
+#include <cstdlib>
 
 int main(int argc, char* argv[])
 {
     // set up synchronization mechanisms
-
-
     if (argv[1] > MAXFACTORIES) 
     {
         printf("%d exceeded maximum number of factory lines allowed. \n", argv[0]);
@@ -40,6 +37,8 @@ int main(int argc, char* argv[])
     
     int num_factories = argv[0]; //specs say argv[1], but only 2 args passed 
     int num_parts = argv[1];
+
+    printf("SALES: Will Request an Order of Size = %d parts\n", num_parts);
 
     // Step 1: set up shared mem & initialize its objects
     int shmID;
@@ -61,7 +60,6 @@ int main(int argc, char* argv[])
         fprintf(stderr, "Error code: %d", errno);
     }
 
-    // say what shmat does
     data = (shmData *) shmat(shmID, NULL, 0);
     if (data == (void *) -1) {
         perror("shmat");
@@ -75,27 +73,39 @@ int main(int argc, char* argv[])
 
     // create reandevous semaphore for sales and supervisor 
     // sales waits via semaphore for supervisor to finish
-    
 
-    // Step 3: Fork/Execute Supervisor process
-
+    // Step 3: Fork/Execute Supervisor process    
 
     // Step 4: Fork/Execute all factory processes
-    // create num_factories + 1 child processes based on num_lines (+1 for the Supervisor child process)
-    while(i < num_factories)
+    // create num_factories child processes based on num_factories
+    printf("Creating %d Factory(ies)", num_factories);
+
+    for (int i = 0; i < num_factories; i++)
     {
-        fork();
-        i++;
+        pid_t factory_pid = fork();
+        if (factory_pid == -1) 
+        {
+            perror("fork child process");
+            exit(EXIT_FAILURE);
+        }
+        // create the factory arguments 
+        int capacity = ;
+        int duration = ; // in miliseconds 
+        printf("SALES: Factory #    %d was created, with Capacity=  %d and Duration=    %d",i , capacity, duration);
     }
     // redirect all factory process stdout to 'factory.log'
     // handle critical selection made by redirection of stdout using synchronization method
 
     // Step 5: Wait for supervisor to indicate manufacturing is done
     // sales waits via semaphore for supervisor to finish
+    
+    printf("SALES: Supervisor says all Factories have completed their mission\n");
 
     // Step 6: Grant supervisor permission to print the Final Report
+    printf("SALES: Permission granted to print final report\n");
 
     // Step 7: Clean up zombie processes (Supervisior + all Factories)
+    printf("SALES: Cleanign up after the Supervisor Factory Process\n");
     
     // Step 8: destroy shmem
 

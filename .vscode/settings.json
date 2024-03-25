@@ -1,6 +1,8 @@
 {
   "files.associations": {
-    "message.h": "c"
+    "message.h": "c",
+    "semaphore.h": "c",
+    "wrappers.h": "c"
   },
   "C_Cpp_Runner.msvcBatchPath": "",
   "C_Cpp_Runner.cCompilerPath": "gcc",
