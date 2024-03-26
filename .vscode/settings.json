@@ -2,7 +2,16 @@
   "files.associations": {
     "message.h": "c",
     "semaphore.h": "c",
-    "wrappers.h": "c"
+    "wrappers.h": "c",
+    "shmem.h": "c",
+    "stdlib.h": "c",
+    "*.tcc": "c",
+    "limits": "c",
+    "numeric": "c",
+    "streambuf": "c",
+    "tuple": "c",
+    "type_traits": "c",
+    "utility": "c"
   },
   "C_Cpp_Runner.msvcBatchPath": "",
   "C_Cpp_Runner.cCompilerPath": "gcc",
@@ -60,5 +69,6 @@
   "C_Cpp_Runner.useLeakSanitizer": false,
   "C_Cpp_Runner.showCompilationTime": false,
   "C_Cpp_Runner.useLinkTimeOptimization": false,
-  "C_Cpp_Runner.msvcSecureNoWarnings": false
+  "C_Cpp_Runner.msvcSecureNoWarnings": false,
+  "C_Cpp.errorSquiggles": "disabled"
 }
