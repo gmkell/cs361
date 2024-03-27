@@ -95,9 +95,20 @@ int main(int argc, char* argv[])
     msgBuf msgQue;
     int msgStatus;
     key_t msgKey;
-    msgKey = ftok(".", mypid);
+    // msgKey = ftok(".", mypid);
+    msgKey = ftok("message.h", 'B');
+    if (msgKey == -1)
+    {
+        perror("ftok for msg queue in sales");
+        exit(EXIT_FAILURE);
+    }
     int msgflg = IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR | S_IWOTH;
-    mailboxID = msgget(msgKey, msgflg | IPC_CREAT);
+    mailboxID = msgget(msgKey, IPC_CREAT | 0666);
+    if (mailboxID == -1)
+    {
+        perror("mssget failed for msg queue in sales");
+        exit(EXIT_FAILURE);
+    }
 
     // Step 2.1: semaphore setup
     // create reandevous semaphore for sales and supervisor 
@@ -119,7 +130,9 @@ int main(int argc, char* argv[])
     {
         // Step 3.1 redirect stdout for supervisor child to 'supevisor.log'
         char num_factories_str[10];
+        char msgkey_str[10];
         sprintf(num_factories_str, "%d", num_factories);
+        sprintf(msgkey_str, "%d", msgKey);
         int supervisor_log_fd = open("supervisor.log", O_WRONLY | O_CREAT | O_TRUNC, 0666);
         if (supervisor_log_fd == -1)
         {
@@ -129,7 +142,7 @@ int main(int argc, char* argv[])
         close(supervisor_log_fd);
 
         // Step 3.2 send arguments and execute supervisor process
-        execlp("./supervisor", "supervisor", num_factories_str, (char *)NULL);
+        execlp("./supervisor", "supervisor", num_factories_str, msgkey_str, (char *)NULL);
         perror("excelp supervisor\n");
         exit(EXIT_FAILURE);
     }   
@@ -165,12 +178,14 @@ int main(int argc, char* argv[])
             char capacity_str[10];
             char duration_str[10];
             char factory_id_str[10];
+            char msgkey_str[10];
             sprintf(capacity_str, "%d", capacity);
             sprintf(duration_str, "%d", duration);
             sprintf(factory_id_str, "%d", i + 1);
+            sprintf(msgkey_str, "%d", msgKey);
             factories[i] = factory_pid;
             // Execute factory program with arguments
-            execlp("./factory", "factory", factory_id_str, capacity_str, duration_str, (char *)NULL);
+            execlp("./factory", "factory", factory_id_str, capacity_str, duration_str, msgkey_str, (char *)NULL);
             perror("execlp factory"); // Only reached if execlp fails
             exit(EXIT_FAILURE);
         }

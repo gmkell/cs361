@@ -1,0 +1,20 @@
+Factory #   1 STARTED. My capacity is =    26 parts, in    841 milliSeconds
+Factory #   1: Going to make    26 parts in  841 milliSecs
+Factory #   3 STARTED. My capacity is =    49 parts, in    591 milliSeconds
+Factory #   3: Going to make    49 parts in  591 milliSecs
+Factory #   4 STARTED. My capacity is =    44 parts, in   1184 milliSeconds
+Factory #   4: Going to make    44 parts in 1184 milliSecs
+Factory #   2 STARTED. My capacity is =    41 parts, in   1033 milliSeconds
+Factory #   2: Going to make    41 parts in 1033 milliSecs
+Factory #   5 STARTED. My capacity is =    16 parts, in    794 milliSeconds
+Factory #   5: Going to make    16 parts in  794 milliSecs
+Factory #   3: Going to make    49 parts in  591 milliSecs
+Factory #   5: Going to make    16 parts in  794 milliSecs
+Factory #   1: Going to make    26 parts in  841 milliSecs
+Factory #   2: Going to make    41 parts in 1033 milliSecs
+Factory #   3: Terminating after making a total of    98 parts in      2 iterations
+Factory #   4: Going to make    44 parts in 1184 milliSecs
+Factory #   5: Terminating after making a total of    32 parts in      2 iterations
+Factory #   1: Terminating after making a total of    52 parts in      2 iterations
+Factory #   2: Terminating after making a total of    82 parts in      2 iterations
+Factory #   4: Terminating after making a total of    88 parts in      2 iterations

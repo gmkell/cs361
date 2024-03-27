@@ -1,0 +1,23 @@
+SUPERVISOR: Started
+Factory #     3 produced       49 parts in     591 milliSecs
+Factory #     5 produced       16 parts in     794 milliSecs
+Factory #     1 produced       26 parts in     841 milliSecs
+Factory #     2 produced       41 parts in    1033 milliSecs
+Factory #     3 produced       49 parts in     591 milliSecs
+Factory #     3 COMPLETED its task
+Factory #     4 produced       44 parts in    1184 milliSecs
+Factory #     5 produced       16 parts in     794 milliSecs
+Factory #     5 COMPLETED its task
+Factory #     1 produced       26 parts in     841 milliSecs
+Factory #     1 COMPLETED its task
+Factory #     2 produced       41 parts in    1033 milliSecs
+Factory #     2 COMPLETED its task
+Factory #     4 produced       44 parts in    1184 milliSecs
+Factory #     4 COMPLETED its task
+
+SUPERVISOR: Manufacturing is complete. Awaiting permission to print final report
+
+******  SUPERVISOR: Final Report   ******
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+Grand total parts made =      880     vs      order size of     700

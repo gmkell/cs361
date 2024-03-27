@@ -51,6 +51,7 @@ int main(int argc, char *argv[])
 
     // create/initialize variables 
     int activeFactories = atoi(argv[1]);
+    key_t msgKey = (key_t) atoi(argv[2]);
     int completedFactories = 0;
 
 
@@ -58,13 +59,13 @@ int main(int argc, char *argv[])
 
 
     // open the supervisor.log file and make sure it redirects stdout
-    FILE *supervisor_log = fopen("supervisor.log", "a"); // open supervisor.log file
+    FILE *supervisor_log = fopen("supervisor.log", "w"); // open supervisor.log file
     if (supervisor_log == NULL)
     {
         perror("failed to open supervisor.log in Supervisor");
         exit(EXIT_FAILURE);
     }
-    if (freopen("supervisor.log", "a", stdout) == NULL) // redirect stdout
+    if (freopen("supervisor.log", "w", stdout) == NULL) // redirect stdout
     {
         perror("freopen() failed");
         exit(EXIT_FAILURE);
@@ -91,13 +92,11 @@ int main(int argc, char *argv[])
     int mailboxID, factoryMailboxID;
     msgBuf incomingMsg;
 
-    int msg_id = Msgget(MSG_KEY, 0666 | IPC_CREAT);
+    int msg_id = Msgget(msgKey, 0666 | IPC_CREAT);
     if (msg_id < 0){
         perror("msgget");
         exit(1);
     }
-
-    // 
 
     // main work
     Sem_wait(mutex);
@@ -124,54 +123,26 @@ int main(int argc, char *argv[])
         }
     }
 
-
-    // while ( activeFactories > completedFactories)
-    // {
-    //     // receive a message from msgQueue
-    //     msgStatus = msgrcv( msg_id , &incomingMsg , MSG_INFO_SIZE, 0, 0);
-    //     if (msgStatus == -1)
-    //     {
-    //         printf("Failed to receive message when %d factories running\n", activeFactories);
-    //     }
-    //     // validate the message
-    //     switch (incomingMsg.purpose) {
-    //         case PRODUCTION_MSG:
-    //             printf("Factory %3d produced %5d parts in %4d miliSecs\n", incomingMsg.facID, incomingMsg.partsMade, incomingMsg.duration);
-    //             // update per-factory productions aggregates (num parts built, num-iterations)
-    //             iterations++;
-    //             break;
-    //         case COMPLETION_MSG:
-    //             printf("Factory %3d COMPLETED its task\n", incomingMsg.facID);
-    //             completedFactories++;
-    //             break;
-    //         default:
-    //             fprintf(stderr, "Unkown message type received.\n");
-    //     }
-    // }
-
     Sem_post(mutex);
-
-    printf("All factories have completed production.\n");
 
     // inform the Sales that manufacturing is done
     Sem_post(supervisorFinished);
-    
-
-    // synchronize with Sales through NAMED semaphore
-    
+        
     // wait for permission from Sales to print final report
+    printf("\n");
     printf("SUPERVISOR: Manufacturing is complete. Awaiting permission to print final report\n");
-    Sem_wait(salesFinished);
+    printf("\n");
+    Sem_wait(salesFinished);     // synchronize with Sales through NAMED semaphore
     // print per-factory production aggregates sorted by factoryID.
     printf("******  SUPERVISOR: Final Report   ******\n");
     // loop through all factory processes
     // printf("Factory #  %3d made a total of   %5d parts in       %4d iterations\n", ... , ... , ... );    
-    printf("----------------------------------------------");
-    printf("----------------------------------------------");
-    printf("Grand total parts made =    %5d     vs      order size of   %5d\n", made , order_size );    
+    printf("--------------------------------------------------------------------------------\n");
+    printf("--------------------------------------------------------------------------------\n");
+    printf("Grand total parts made =    %5d     vs      order size of   %5d\n", data->made , data->order_size );    
     
     // close supervisor.log
-    //fclose(supervisor_log);
+    fclose(supervisor_log);
 
     return 0;
 }

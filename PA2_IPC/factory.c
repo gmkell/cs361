@@ -24,8 +24,9 @@
 #include "wrappers.h"
 #include "message.h"
 
-#define MSG_KEY 0x5678
+// #define MSG_KEY 0x5678
 #define SEM_FACTORY_FINISHED "/sem_factory_finished"
+#define SEM_MUTEX_NAME "/sem_mutex"
 
 int determine_parts_to_make(int capacity, shData *shm_data);
 
@@ -56,11 +57,13 @@ int main(int argc, char* argv[])
     }
     
     sem_t *factoryFinished = Sem_open(SEM_FACTORY_FINISHED, O_CREAT, 0644, 0);
+    sem_t *mutex = Sem_open(SEM_MUTEX_NAME, O_CREAT, 0644, 0);
 
     // Step 2: get variables from command line and create others 
     int factory_ID = atoi(argv[1]);
     int capacity = atoi(argv[2]);
     int duration = atoi(argv[3]);
+    key_t msgKey = (key_t) atoi(argv[4]);
     int remain = shm_data->remain;
     int iterations = 0;
     int parts_made_by_me = 0;
@@ -69,7 +72,7 @@ int main(int argc, char* argv[])
     int mailbox;
     msgBuf msg;
     int msgFlgs = S_IWUSR;
-    int msgID = msgget(MSG_KEY, msgFlgs);
+    int msgID = msgget(msgKey, msgFlgs);
     if (mailbox == -1)
     {
         perror("failed to open message queue in factory.c");
@@ -92,6 +95,7 @@ int main(int argc, char* argv[])
     // Step 5: Factory Process
     printf("Factory #   %d STARTED. My capacity is =    %d parts, in   %4d milliSeconds\n", factory_ID, capacity, duration);
     fflush(stdout);
+
     while (remain > 0)
     {
         // determine how many parts to make
@@ -126,6 +130,8 @@ int main(int argc, char* argv[])
         factory_ID, parts_made_by_me, iterations);
     fflush(stdout);
 
+    Sem_post(mutex);
+
     // Create & send completion message to Supervisor
     msg.facID = factory_ID;
     msg.purpose = COMPLETION_MSG;
@@ -140,6 +146,8 @@ int main(int argc, char* argv[])
     // Cleanup and detach shared memory
     Sem_post(factoryFinished);
     Shmdt(shm_data);
+
+    fclose(factory_log);
 
     return EXIT_SUCCESS;
 }
