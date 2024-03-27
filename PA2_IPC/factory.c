@@ -28,8 +28,8 @@
 #define SEM_FACTORY_FINISHED "/sem_factory_finished"
 #define SEM_MUTEX_NAME "/sem_mutex"
 
-int determine_parts_to_make(int capacity, shData *shm_data);
-
+int determine_parts_to_make(int capacity, int remain);
+int smaller_of(int remain, int capacity, int made);
 
 int main(int argc, char* argv[])
 {
@@ -99,10 +99,11 @@ int main(int argc, char* argv[])
     while (remain > 0)
     {
         // determine how many parts to make
-        int parts_to_make = determine_parts_to_make(capacity, shm_data);
+        int parts_to_make = determine_parts_to_make(capacity, remain);
         remain = remain - parts_to_make; // update remain
-        // shm_data->remain = remain - parts_to_make;
-        if (parts_to_make > 0 && !(parts_made_by_me > capacity))
+        //shm_data->remain = remain - parts_to_make;
+        //shm_data->remain = remain;
+        if (parts_to_make > 0 && (parts_made_by_me + shm_data->made + parts_to_make <= shm_data->order_size))
         {
             printf("Factory #   %d: Going to make %5d parts in %4d milliSecs\n", factory_ID, parts_to_make, duration);
             fflush(stdout); 
@@ -120,11 +121,12 @@ int main(int argc, char* argv[])
             iterations++; // increment iterations 
             // update factory record of total # parts made so far
             parts_made_by_me += parts_to_make;
-            shm_data->made += parts_made_by_me;
         } else {
             break;
         }
     }
+
+    shm_data->made += parts_made_by_me;
     
     printf("Factory #   %d: Terminating after making a total of    %d parts in      %d iterations\n",
         factory_ID, parts_made_by_me, iterations);
@@ -154,11 +156,27 @@ int main(int argc, char* argv[])
 
 // helper function to determine number of parts to make based on 
 // the capacity of the factory and the remaining parts to make
-int determine_parts_to_make(int capacity, shData *shm_data) {
-    int parts_to_make = shm_data->remain < capacity ? shm_data->remain : capacity;
-    if (shm_data->remain < parts_to_make) {
-        parts_to_make = shm_data->remain;
+int determine_parts_to_make(int capacity, int remain) {
+    int parts_to_make = remain < capacity ? remain : capacity;
+    if (remain < parts_to_make) {
+        parts_to_make = remain;
     }
-    shm_data->remain -= parts_to_make;
+    //remain = remain - parts_to_make;
     return parts_to_make;
 }
+
+// factory determine whether it needs to make more parts
+// factory process must not make more parts than what is needed
+// nor exceed its full capacity to the concurrent making of the parts
+int smaller_of(int remain, int capacity, int made)
+{
+    int parts_to_make = 0; // initialize to zero in case no parts needed
+    // check how many total parts have been made, compare with order_size and remain
+
+
+
+    return parts_to_make;
+
+}
+
+
