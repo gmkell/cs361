@@ -72,7 +72,7 @@ int main(int argc, char* argv[])
     int mailbox;
     msgBuf msg;
     int msgFlgs = S_IWUSR;
-    int msgID = msgget(msgKey, msgFlgs);
+    int msgID = Msgget(msgKey, msgFlgs);
     if (mailbox == -1)
     {
         perror("failed to open message queue in factory.c");
