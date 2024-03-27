@@ -1,144 +1,156 @@
-// factory.c
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
+//----------------------------------------------------------------------------
+// Assignment   :   PA2 IPC
+// Date         :   3/25/24
+// 
+// Group 6      : Gillian Kelly,   Ethan Pae          
+//
+// Supervisor   :   factory.c
+//----------------------------------------------------------------------------
+#include <stdio.h> 
 #include <sys/types.h>
-#include <sys/ipc.h>
-#include <sys/msg.h>
+#include <unistd.h>
+#include <errno.h>
+#include <string.h>
+#include <signal.h>
+#include <sys/wait.h>
 #include <sys/shm.h>
-#include <time.h>
-#include "shmem.h" // Include the shared memory header
+#include <sys/stat.h>
+#include <sys/ipc.h>
 #include <semaphore.h>
-#include <fcntl.h> // For O_CREAT, O_EXEC, etc.
+#include <fcntl.h>
+#include <stdlib.h>
+
+#include "shmem.h"
+#include "wrappers.h"
+#include "message.h"
 
 #define MSG_KEY 0x5678
-#define SHM_KEY 0x9ABC
-
-// Message structure for message queue
-struct msgbuf {
-    long mtype;     // Message type
-    int factory_id; // Factory ID
-    int capacity;   // Factory capacity
-    int parts_made; // Number of parts made in the iteration
-    int duration;   // Duration it took to make the parts
-};
+#define SEM_FACTORY_FINISHED "/sem_factory_finished"
 
 int determine_parts_to_make(int capacity, shData *shm_data);
 
-int main(int argc, char *argv[]) {
-    if (argc != 4) {
-        fprintf(stderr, "Usage: %s <factory_ID> <capacity> <duration>\n", argv[0]);
+
+int main(int argc, char* argv[])
+{
+    // Step 1: re-attach shared memory segment
+    key_t shmKey = ftok("shmem.h", 'R');
+    shData *shm_data;
+    if (shmKey == -1) 
+    {
+        perror("Factory could not re-establish connection to shared memory");
         exit(EXIT_FAILURE);
     }
 
+    int shmID = Shmget(shmKey, SHMEM_SIZE, 0);
+    if (shmID == -1)
+    {
+        perror("shmget in factory");
+        fprintf(stderr, " Error code: %d", errno);
+    }
+
+    shm_data = (shData *)Shmat(shmID, NULL, 0);
+    if (shm_data == (shData*) -1)
+    {
+        perror("shmat() in factory.c");
+        exit(EXIT_FAILURE);
+    }
+    
+    sem_t *factoryFinished = Sem_open(SEM_FACTORY_FINISHED, O_CREAT, 0644, 0);
+
+    // Step 2: get variables from command line and create others 
     int factory_ID = atoi(argv[1]);
     int capacity = atoi(argv[2]);
     int duration = atoi(argv[3]);
+    int remain = shm_data->remain;
+    int iterations = 0;
+    int parts_made_by_me = 0;
 
-    // Attach to shared memory
-    int shm_id = shmget(SHM_KEY, SHMEM_SIZE, 0666);
-    if (shm_id < 0) {
-        perror("shmget");
-        exit(1);
-    }
-    shData *shm_data = (shData *)shmat(shm_id, NULL, 0);
-    if (shm_data == (void *)-1) {
-        perror("shmat");
-        exit(1);
-    }
-
-    // Message queue identifier
-    int msgid;
-    struct msgbuf msg;
-
-    msg.mtype = 1; // This should correspond to the message type for a production update
-    msg.factory_id = factory_ID;
-    msg.capacity = capacity;
-    msg.parts_made = shm_data->made;
-    msg.duration = duration;
-
-
-    // Set up the message queue
-    msgid = msgget(MSG_KEY, 0666 | IPC_CREAT);
-    if (msgid == -1) {
-        perror("msgget failed");
+    // Step 3: re-attach message queue
+    int mailbox;
+    msgBuf msg;
+    int msgFlgs = S_IWUSR;
+    int msgID = msgget(MSG_KEY, msgFlgs);
+    if (mailbox == -1)
+    {
+        perror("failed to open message queue in factory.c");
+        exit(EXIT_FAILURE);
+    } 
+    // Step 4: open factory.log in append mode so that processes don't overwrite each other
+    FILE *factory_log = fopen("factory.log", "a");
+    if (factory_log == NULL)
+    {
+        perror("failed to open factory.log in Supervisor");
         exit(EXIT_FAILURE);
     }
 
-    // Retrieve order size from shared memory
-    int order_size = shm_data->order_size;
-    int parts_made_so_far = shm_data->remain;  // This factory's count of parts made
-
-    // Main loop to simulate part production
-    int count = 0;
-    while (1) {
-        // Determine how many parts to make in this iteration
-        // This part of logic should come from the shared memory or some IPC mechanism
-        // For the sake of the example, let's assume we have a function that determines it
-        int parts_to_make = determine_parts_to_make(capacity, shm_data); 
-
-        if (parts_to_make > 0) {
-            printf("Factory #%d: Going to make %d parts in %d milliseconds\n",
-                   factory_ID, parts_to_make, duration);
-            sleep(duration / 1000); // Simulating production time
-
-            // Populate the message with the production details
-            msg.mtype = 1; // Message type should be set according to your design
-            msg.factory_id = factory_ID;
-            msg.capacity = capacity;
-            msg.parts_made = parts_to_make;
-            msg.duration = duration;
-
-            // Send a production message to the supervisor
-            if (msgsnd(msgid, &msg, sizeof(msg) - sizeof(long), 0) == -1) {
-                perror("msgsnd");
-                exit(EXIT_FAILURE);
-            }
-
-            parts_made_so_far += parts_to_make;
-
-            // Check if all parts have been made
-            if (parts_made_so_far >= order_size) {
-                // Send a completion message to the Supervisor
-                break;
-            }
-        } else {
-            // No more parts to make, send a completion message to the supervisor
-            msg.mtype = 2; // Adjust message type for completion
-            msg.factory_id = factory_ID;
-            msg.capacity = 0;
-            msg.parts_made = 0;
-            msg.duration = 0;
-
-            if (msgsnd(msgid, &msg, sizeof(msg) - sizeof(long), 0) == -1) {
-                perror("msgsnd");
-                exit(EXIT_FAILURE);
-            }
-            break; // Break out of the loop to terminate the process
-        }
-        count++;
+    if (freopen("factory.log", "a", stdout) == NULL)
+    {
+        perror("freopen() failed for factory.log");
+        exit(EXIT_FAILURE);
     }
 
-    // Cleanup and exit
-    printf("Factory #%d: Terminating after making a total of %d parts in %d iterations\n",
-           factory_ID, parts_made_so_far, count);
-    shmdt(shm_data);
+    // Step 5: Factory Process
+    printf("Factory #   %d STARTED. My capacity is =    %d parts, in   %4d milliSeconds\n", factory_ID, capacity, duration);
+    fflush(stdout);
+    while (remain > 0)
+    {
+        // determine how many parts to make
+        int parts_to_make = determine_parts_to_make(capacity, shm_data);
+        remain = remain - parts_to_make; // update remain
+        // shm_data->remain = remain - parts_to_make;
+        if (parts_to_make > 0 && !(parts_made_by_me > capacity))
+        {
+            printf("Factory #   %d: Going to make %5d parts in %4d milliSecs\n", factory_ID, parts_to_make, duration);
+            fflush(stdout); 
+            Usleep(duration * 1000); // Simulate production time in microseconds
+            // Create & send production message to supervisor
+            msg.facID = factory_ID;
+            msg.purpose = PRODUCTION_MSG;
+            msg.mtype = 1;
+            msg.capacity = capacity;
+            msg.partsMade = parts_to_make;
+            msg.duration = duration;
+            // printf("production message for Factory #    %d:\n", factory_ID);
+            // printMsg(&msg); // for testing purposes
+            msgsnd(msgID, &msg, MSG_INFO_SIZE, 0);
+            iterations++; // increment iterations 
+            // update factory record of total # parts made so far
+            parts_made_by_me += parts_to_make;
+            shm_data->made += parts_made_by_me;
+        } else {
+            break;
+        }
+    }
+    
+    printf("Factory #   %d: Terminating after making a total of    %d parts in      %d iterations\n",
+        factory_ID, parts_made_by_me, iterations);
+    fflush(stdout);
+
+    // Create & send completion message to Supervisor
+    msg.facID = factory_ID;
+    msg.purpose = COMPLETION_MSG;
+    msg.mtype = 1;
+    msg.capacity = capacity;
+    msg.partsMade = parts_made_by_me;
+    msg.duration = duration;
+    // printf("Completion messge for Factory #     %d:\n", factory_ID);
+    // printMsg(&msg);
+    msgsnd(msgID, &msg, MSG_INFO_SIZE, 0);
+    
+    // Cleanup and detach shared memory
+    Sem_post(factoryFinished);
+    Shmdt(shm_data);
+
     return EXIT_SUCCESS;
 }
 
+// helper function to determine number of parts to make based on 
+// the capacity of the factory and the remaining parts to make
 int determine_parts_to_make(int capacity, shData *shm_data) {
-    // Determine the number of parts to make in this iteration
-    // It should be the minimum of the parts needed and the factory's capacity
     int parts_to_make = shm_data->remain < capacity ? shm_data->remain : capacity;
-
-    // Ensure we do not produce more than what is required
     if (shm_data->remain < parts_to_make) {
         parts_to_make = shm_data->remain;
     }
-
-    // Update the remaining parts, needs to be done atomically or with proper locking
     shm_data->remain -= parts_to_make;
-
     return parts_to_make;
 }
-

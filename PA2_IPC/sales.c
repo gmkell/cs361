@@ -18,10 +18,10 @@
 #include <sys/stat.h>
 #include <sys/ipc.h>
 #include <semaphore.h>
+#include <time.h>
 #include <fcntl.h>
 #include <stdlib.h>
-#include <semaphore.h>
-#include <time.h>
+#include <stdbool.h>
 
 #include "shmem.h"
 #include "wrappers.h"
@@ -32,44 +32,19 @@
 #define SEM_SUPER_STARTED "/sem_super_started"
 #define SEM_SALES_FINISHED "/sem_sales_finished"
 #define SEM_SUPER_FINISHED "/sem_super_finished"
+#define SEM_FACTORY_FINISHED "/sem_factory_finished"
 
+// declare variables in global scope for signal catching
+sem_t *mutex, *salesStarted, *supervisorStarted, *salesFinished, *supervisorFinished, *factoryFinished;
+int factories[MAXFACTORIES];
+int num_factories = 0;
+int supervisor_pid = -1;
+int mailboxID = -1;
+int shmID = -1;
 
-//------------------------------------------------------------
-// Handles cleanup when TERM or INT is caught by to sales
-//------------------------------------------------------------
-// void sigHandler_kill(int sig)
-// {
-//     printf("Sales gracefully shutdown via %d \n", sig);
-//     fflush(stdout);
-//     cleanup_resources();
-//     exit(EXIT_SUCCESS);
-// }
-
-// // helper function to do some of the work for sigHandler
-// void cleanup_resources()
-// {
-//     // kill ALL child processes
-//     if (supervisor_pid > 0)
-//     {
-//         kill(supervisor_pid, SIGKILL);
-//     }
-
-//     for (int i = 0; i < num_factories; i++)
-//     {
-//         kill(factory_pid[i], SIGKILL);
-//     }
-//     // clean up semaphores
-
-//     // remove shared memory
-//     if (shmID != -1)
-//     {
-//         shmctl(shmID, IPC_RMID, NULL);
-//     }
-
-//     // destroy message queue
-//     msgctl(mailboxID, IPC_REMID, NULL);
-// }
-
+void sigHandler_KILL(int sig);
+void cleanup_resources();
+void destroy_semaphores();
 
 int main(int argc, char* argv[])
 {
@@ -80,136 +55,134 @@ int main(int argc, char* argv[])
         exit(EXIT_FAILURE); 
     }
     
-    int num_factories = atoi(argv[1]);
+    num_factories = atoi(argv[1]);
 
     int num_parts = atoi(argv[2]);
 
     printf("SALES: Will Request an Order of Size = %d parts\n", num_parts);
 
     // Step 1: set up shared mem & initialize its objects
-    int shmID;
-    key_t shmKey;
+    key_t key;
+    pid_t mypid;
     shData *data;
 
-    // generate unique key for shared memory
-    shmKey = ftok("shmem.h", 'R');
-    if (shmKey == -1)
+    // create shmkey by converting pathname to an IPC key 
+    key = ftok("shmem.h", 'R');
+    if (key == -1)
     {
-        perror("ftok on shmkey\n");
-        exit(EXIT_FAILURE);
+        perror("ftok() on key");
+        exit(EXIT_FAILURE);  
     }
-    // create shared memory segment 
-    shmID = shmget(shmKey, SHMEM_SIZE, IPC_CREAT | 0666);
-    if (shmID == -1)
-    {
-        perror("shmget");
-        exit(EXIT_FAILURE);
-    }
-    // attack shmem to Sales;s address space 
-    shData *ptr;
-    ptr = (shData*) shmat(shmID, NULL, 0);
-    if (ptr == (void*)-1)
-    {
-        perror("shmat");
-        exit(EXIT_FAILURE);
-    }
-    
-    int mypid = getpid();
 
-    // initialize shmem content
-    ptr->order_size = num_parts;
-    ptr->made = 0;
-    ptr->remain = num_parts;
+    // create shared memory segment 
+    if ( (shmID = shmget(key, SHMEM_SIZE, IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR)) == -1 )
+    {
+        perror("shmget() failed to create shared memory in Sales");
+        fprintf(stderr, " Error code: %d", errno);
+    }
+
+    data = (shData *) shmat(shmID, NULL, 0);
+    if (data == (shData *) -1) {
+        perror("shmat in sales.c");
+        exit(EXIT_FAILURE);
+    }
+    mypid = getpid(); // the sales process pid
+
+    // Seed random number generator only ONCE
+    srandom(time(NULL));
 
     // Step 2: set up message queue and semaphores
-    key_t msgKey;
+    msgBuf msgQue;
     int msgStatus;
-    char* msgPath = ".";
-    msgKey = ftok(msgPath, mypid);
-    int msgflg  =  IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR | S_IWOTH  ;
-    int mailboxID = msgget(msgKey, msgflg | IPC_CREAT);
+    key_t msgKey;
+    msgKey = ftok(".", mypid);
+    int msgflg = IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR | S_IWOTH;
+    mailboxID = msgget(msgKey, msgflg | IPC_CREAT);
 
-    // Step 2.1 semaphore setup
+    // Step 2.1: semaphore setup
     // create reandevous semaphore for sales and supervisor 
-    sem_t *mutex = Sem_open(SEM_MUTEX_NAME, O_CREAT, 0644, 1);
-    sem_t *salesStarted = Sem_open(SEM_SALES_STARTED, O_CREAT, 0644, 0);
-    sem_t *supervisorStarted = Sem_open(SEM_SUPER_STARTED, O_CREAT, 0644, 0);
-    sem_t *salesFinished = Sem_open(SEM_SALES_FINISHED, O_CREAT, 0644, 0);
-    sem_t *supervisorFinished = Sem_open(SEM_SUPER_FINISHED, O_CREAT, 0644, 0);     
+    mutex = Sem_open(SEM_MUTEX_NAME, O_CREAT, 0644, 1);
+    salesStarted = Sem_open(SEM_SALES_STARTED, O_CREAT, 0644, 0);
+    supervisorStarted = Sem_open(SEM_SUPER_STARTED, O_CREAT, 0644, 0);
+    salesFinished = Sem_open(SEM_SALES_FINISHED, O_CREAT, 0644, 0);
+    supervisorFinished = Sem_open(SEM_SUPER_FINISHED, O_CREAT, 0644, 0);
+    factoryFinished = Sem_open(SEM_FACTORY_FINISHED, O_CREAT, 0644, 0);
 
-    
-    // Step 3: Fork/Execute Supervisor process 
-    int supervisor_pid = Fork();
+    // printf("SALES: Created semaphores and set up message queues!\n");
+    data->made = 0;
+    data->remain = num_parts;
+    data->order_size = num_parts;
+
+    // Step 3: Fork/Execute Supervisor process
+    supervisor_pid = Fork();
     if (supervisor_pid == 0)
     {
         // Step 3.1 redirect stdout for supervisor child to 'supevisor.log'
         char num_factories_str[10];
         sprintf(num_factories_str, "%d", num_factories);
+        int supervisor_log_fd = open("supervisor.log", O_WRONLY | O_CREAT | O_TRUNC, 0666);
+        if (supervisor_log_fd == -1)
+        {
+            perror("Failed to open/create supervisor.log\n");
+            exit(EXIT_FAILURE);
+        }
+        close(supervisor_log_fd);
+
         // Step 3.2 send arguments and execute supervisor process
-        execlp("./supervisor", "supervisor", num_factories_str, (char*)NULL);
-        perror("excelp supervisor");
+        execlp("./supervisor", "supervisor", num_factories_str, (char *)NULL);
+        perror("excelp supervisor\n");
         exit(EXIT_FAILURE);
     }   
-
-
-
-
-    Sem_wait(mutex); 
-    
 
     // Step 4: Fork/Execute all factory processes
     printf("Creating %d Factory(ies)\n", num_factories);
 
-    srandom(time(NULL));     // seed random number generator only ONCE
+    // seed random number generator only ONCE
+    srandom(time(NULL));
 
+    // Create factory.log before forking factory processes
+    int factory_log_fd = open("factory.log", O_WRONLY | O_CREAT | O_APPEND, 0666);
+    if (factory_log_fd == -1) {
+        perror("Failed to open/create factory.log");
+        exit(EXIT_FAILURE);
+    }
+    close(factory_log_fd); // Close the file descriptor as factories will open it themselves
 
+    for (int i = 0; i < num_factories; i++) {
+        // Create the factory arguments using random()
+        int capacity = (int)random() % (50 - 10 + 1) + 10;
+        int duration = (int)random() % (1200 - 500 + 1) + 500; // in milliseconds 
 
-    // create num_factories child processes based on num_factories
-    for (int i = 0; i < num_factories; i++)
-    {   
-        // Step 4.1 create the factory arguments using random()
-        int capacity = (int) random() % (50 - 10 + 1) + 10;
-        int duration = (int)random() % (1200 - 500 + 1) + 500; ; // in miliseconds 
-
-        int factory_pid = fork();
-        if (factory_pid == -1) 
-        {
+        pid_t factory_pid = fork();
+        if (factory_pid == -1) {
             perror("fork child process");
             exit(EXIT_FAILURE);
         }
 
-        // child process
-        if (factory_pid == 0)
-        {
-            // convert arguments to string so they can used in excelp
+        // Child process: factory
+        if (factory_pid == 0) {
+            // Convert arguments to string to be used in execlp
             char capacity_str[10];
             char duration_str[10];
             char factory_id_str[10];
             sprintf(capacity_str, "%d", capacity);
             sprintf(duration_str, "%d", duration);
-            sprintf(factory_id_str, "%d", i + 1); 
-            
-            // Step 4.2: redirect all factory process stdout to 'factory.log'
-            int factory_log = open("factory.log", O_WRONLY, O_CREAT, O_TRUNC, 0666);
-            dup2(factory_log, STDOUT_FILENO);
-            close(factory_log); // no need to keep open
-
-            // Step 4.3: send the arguments to the processes via execlp()
-            execlp("./factory", "factory", factory_id_str, capacity_str, duration_str, (char*)NULL);
-            perror("excelp factory\n");
+            sprintf(factory_id_str, "%d", i + 1);
+            factories[i] = factory_pid;
+            // Execute factory program with arguments
+            execlp("./factory", "factory", factory_id_str, capacity_str, duration_str, (char *)NULL);
+            perror("execlp factory"); // Only reached if execlp fails
             exit(EXIT_FAILURE);
-
         }
-        // Step 4.3 Parent process: continue to next iteration to fork next factory
-        printf("SALES: Factory #   %d was created, with Capacity=   %d  and Duration=   %d\n", i , capacity, duration);
+
+        // Parent process: Print factory creation details
+        printf("SALES: Factory #%d was created, with Capacity = %d and Duration = %d ms\n", i + 1, capacity, duration);
     }
 
-    // handle critical selection made by redirection of stdout using a synchronization method
-    Sem_post(mutex);
+    Sem_wait(factoryFinished);
 
-    // Handle signals
-    // sigactionWrapper(SIGINT, sigHandler_kill);
-    // sigactionWrapper(SIGTERM, sigHandler_kill);
+    // printf("SALES: Successfully ran factories!\n");
+    // printf("SALES: Waiting for supervisor to finish!\n");
 
     // Step 5: Wait for supervisor to indicate manufacturing is done
     // sales waits via semaphore for supervisor to finish
@@ -217,29 +190,73 @@ int main(int argc, char* argv[])
     printf("SALES: Supervisor says all Factories have completed their mission\n");
 
     // Step 6: Grant supervisor permission to print the Final Report
+    Sem_post(salesFinished);
     printf("SALES: Permission granted to print final report\n");
 
     // Step 7: Clean up zombie processes (Supervisior + all Factories)
-    printf("SALES: Cleaning up after the Supervisor Factory Process\n");
-    for (int i = 0; i < num_factories; i++)
-    {
-        if (fork() > 0)
-        {
-            kill(fork(), SIGKILL);
-        }
-    }
+    printf("SALES: Cleanign up after the Supervisor Factory Process\n");
+    
+    // Step 8: destroy shmem
+    Shmdt(data);
+    shmctl(shmID, IPC_RMID, 0);
 
+    // Step 9: destroy semaphores and message queue
+    destroy_semaphores();
+
+
+    // Step 10: setup signal catching 
+    sigactionWrapper(SIGINT, sigHandler_KILL);
+    sigactionWrapper(SIGTERM, sigHandler_KILL);
+    return 0;
+}
+
+void sigHandler_KILL(int sig)
+{
+    fflush(stdout);
+    cleanup_resources();
+    exit(EXIT_SUCCESS);
+}
+
+void cleanup_resources() 
+{
+    // kill supervisor process
     if (supervisor_pid > 0)
     {
         kill(supervisor_pid, SIGKILL);
     }
-    
-    // Step 8: destroy shmem
-    shmdt(ptr);
-    shmctl(shmID, IPC_RMID, NULL);
+    // kill all factory processes
+    for (int i = 0; i < num_factories; i++)
+    {
+        kill(factories[i], SIGKILL);
+    }
 
-    // Step 9: destroy semaphores and message queue
-    msgctl(mailboxID, IPC_RMID, NULL);
+    // destroy shared memory
+    if (shmID != -1)
+    {
+        shmctl(shmID, IPC_RMID, NULL);
+    }
 
-    return 0;
+    // destroy message queue
+    if (mailboxID != -1)
+    {
+        msgctl(mailboxID, IPC_RMID, NULL);
+    }
+
+    destroy_semaphores();
+}
+
+void destroy_semaphores()
+{
+    Sem_close(mutex);
+    Sem_close(supervisorFinished);
+    Sem_close(salesFinished);
+    Sem_close(supervisorStarted);
+    Sem_close(salesStarted);
+    Sem_close(factoryFinished);
+    Sem_unlink(SEM_MUTEX_NAME);
+    Sem_unlink(SEM_SALES_FINISHED);
+    Sem_unlink(SEM_SALES_STARTED);
+    Sem_unlink(SEM_FACTORY_FINISHED);
+    Sem_unlink(SEM_SUPER_STARTED);
+    Sem_unlink(SEM_SUPER_FINISHED);
 }
