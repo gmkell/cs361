@@ -210,6 +210,11 @@ int main(int argc, char* argv[])
 
     // Step 7: Clean up zombie processes (Supervisior + all Factories)
     printf("SALES: Cleanign up after the Supervisor Factory Process\n");
+
+    for (int i = 0; i < num_factories; i++)
+    {
+        kill(factories[i], SIGKILL);
+    }
     
     // Step 8: destroy shmem
     Shmdt(data);
@@ -222,9 +227,12 @@ int main(int argc, char* argv[])
     // Step 10: setup signal catching 
     sigactionWrapper(SIGINT, sigHandler_KILL);
     sigactionWrapper(SIGTERM, sigHandler_KILL);
+
     return 0;
 }
 
+
+// signal handler for SIGINT and SIGTERM
 void sigHandler_KILL(int sig)
 {
     fflush(stdout);
@@ -232,6 +240,9 @@ void sigHandler_KILL(int sig)
     exit(EXIT_SUCCESS);
 }
 
+
+// helper function to destroy any zombie processes, shared memory, and message queue
+// when SIGINT or SIGTERM was sent
 void cleanup_resources() 
 {
     // kill supervisor process
@@ -260,6 +271,9 @@ void cleanup_resources()
     destroy_semaphores();
 }
 
+
+// Helper function that destroys all the semaphores created during 
+// the program run
 void destroy_semaphores()
 {
     Sem_close(mutex);

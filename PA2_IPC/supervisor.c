@@ -37,28 +37,24 @@
 
 int main(int argc, char *argv[])
 {
-    // set up synchronization mechanisms
-    // if (argc != 2) {
-    //     printf("Usage: %s <N factories> <order size>\n", argv[0]);
-    //     exit(1);
-    // }
-
+    // Step 1: set up synchronization mechanisms
     sem_t *mutex = Sem_open(SEM_MUTEX_NAME, O_CREAT, 0644, 1);
     sem_t *salesStarted = Sem_open(SEM_SALES_STARTED, O_CREAT, 0644, 0);
     sem_t *supervisorStarted = Sem_open(SEM_SUPER_STARTED, O_CREAT, 0644, 0);
     sem_t *salesFinished = Sem_open(SEM_SALES_FINISHED, O_CREAT, 0644, 0);
     sem_t *supervisorFinished = Sem_open(SEM_SUPER_FINISHED, O_CREAT, 0644, 0);
 
-    // create/initialize variables 
+    // Step 2: create/initialize variables 
     int activeFactories = atoi(argv[1]);
     key_t msgKey = (key_t) atoi(argv[2]);
     int completedFactories = 0;
+    int factories[MAXFACTORIES];
 
 
     Sem_post(supervisorStarted);
 
 
-    // open the supervisor.log file and make sure it redirects stdout
+    // Step 3: open the supervisor.log file and make sure it redirects stdout
     FILE *supervisor_log = fopen("supervisor.log", "w"); // open supervisor.log file
     if (supervisor_log == NULL)
     {
@@ -74,7 +70,7 @@ int main(int argc, char *argv[])
     
     printf("SUPERVISOR: Started\n");
 
-    // open the shmem created by Sales 
+    // Step 4: open the shmem created by Sales 
     key_t key;
     int shmID;
     shData *data;
@@ -86,7 +82,7 @@ int main(int argc, char *argv[])
     int order_size = data->order_size;
     int made = data->made;
 
-    // open the message queue
+    // Step 5: open the message queue
     int msgStatus;
     int supervisorKey;
     int mailboxID, factoryMailboxID;
@@ -98,7 +94,7 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    // main work
+    // Step 5: main work
     Sem_wait(mutex);
     int iterations = 0; // how many times factory process has to repeat to complete part of order
 
@@ -111,7 +107,7 @@ int main(int argc, char *argv[])
             printf("Factory #   %3d produced    %5d parts in    %4d milliSecs\n", incomingMsg.facID, incomingMsg.partsMade, incomingMsg.duration);
             // update per-factory productions aggregates (num parts built, num-iterations)
             data->made = data->made + incomingMsg.partsMade;
-            data->remain = data-> remain - incomingMsg.partsMade;
+            data->remain = data->remain - incomingMsg.partsMade;
             iterations++;
         } else if (incomingMsg.purpose == COMPLETION_MSG)
         {
@@ -125,18 +121,18 @@ int main(int argc, char *argv[])
 
     Sem_post(mutex);
 
-    // inform the Sales that manufacturing is done
+    // Step 6: inform the Sales that manufacturing is done
     Sem_post(supervisorFinished);
         
-    // wait for permission from Sales to print final report
+    // Step 7: wait for permission from Sales to print final report
     printf("\n");
     printf("SUPERVISOR: Manufacturing is complete. Awaiting permission to print final report\n");
     printf("\n");
     Sem_wait(salesFinished);     // synchronize with Sales through NAMED semaphore
-    // print per-factory production aggregates sorted by factoryID.
+    
+    // Step 8: print per-factory production aggregates sorted by factoryID.
     printf("******  SUPERVISOR: Final Report   ******\n");
-    // loop through all factory processes
-    // printf("Factory #  %3d made a total of   %5d parts in       %4d iterations\n", ... , ... , ... );    
+    printf("Factory #  %3d made a total of   %5d parts in       %4d iterations\n", incomingMsg.facID , incomingMsg.partsMade , iterations );    
     printf("--------------------------------------------------------------------------------\n");
     printf("--------------------------------------------------------------------------------\n");
     printf("Grand total parts made =    %5d     vs      order size of   %5d\n", data->made , data->order_size );    
