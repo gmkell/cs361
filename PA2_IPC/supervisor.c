@@ -33,7 +33,9 @@
 #define SEM_FACTORY_STARTED "/sem_factory_started"
 #define SEM_FACTORY_FINISHED "/sem_factory_finished"
 
-#define MSG_KEY 0x5678
+#define MSG_KEY 0x5678 
+
+void sort(int arr[], int size);
 
 int main(int argc, char *argv[])
 {
@@ -48,7 +50,7 @@ int main(int argc, char *argv[])
     int activeFactories = atoi(argv[1]);
     key_t msgKey = (key_t) atoi(argv[2]);
     int completedFactories = 0;
-    int factories[MAXFACTORIES];
+    int factories[activeFactories]; // holds completion information for each active factory
 
 
     Sem_post(supervisorStarted);
@@ -95,8 +97,9 @@ int main(int argc, char *argv[])
     }
 
     // Step 5: main work
-    Sem_wait(mutex);
     int iterations = 0; // how many times factory process has to repeat to complete part of order
+
+    Sem_wait(mutex);
 
     while ( activeFactories > 0 )
     {
@@ -106,13 +109,15 @@ int main(int argc, char *argv[])
         {
             printf("Factory #   %3d produced    %5d parts in    %4d milliSecs\n", incomingMsg.facID, incomingMsg.partsMade, incomingMsg.duration);
             // update per-factory productions aggregates (num parts built, num-iterations)
-            data->made = data->made + incomingMsg.partsMade;
-            data->remain = data->remain - incomingMsg.partsMade;
+            data->made += incomingMsg.partsMade;
+            data->remain -= incomingMsg.partsMade;
             iterations++;
         } else if (incomingMsg.purpose == COMPLETION_MSG)
         {
-            printf("Factory #   %3d COMPLETED its task\n", incomingMsg.facID);
+            factories[completedFactories] = incomingMsg.facID; // collect the factoryID of all active factories 
+            printf("Factory #   %3d COMPLETED its task\n", incomingMsg.facID);            
             activeFactories--;
+            completedFactories++;
         } else 
         {
             fprintf(stderr, "Unkown message type received.\n");
@@ -132,7 +137,15 @@ int main(int argc, char *argv[])
     
     // Step 8: print per-factory production aggregates sorted by factoryID.
     printf("******  SUPERVISOR: Final Report   ******\n");
-    printf("Factory #  %3d made a total of   %5d parts in       %4d iterations\n", incomingMsg.facID , incomingMsg.partsMade , iterations );    
+    
+    //sort(factories, completedFactories);
+
+    for (int i = 0; i < completedFactories; i++)
+    {
+        printf("Factory #  %3d made a total of   %5d parts in       %4d iterations\n", factories[i], data->made, iterations);    
+
+    }
+    //printf("Factory #  %3d made a total of   %5d parts in       %4d iterations\n", incomingMsg.facID , incomingMsg.partsMade , iterations );    
     printf("--------------------------------------------------------------------------------\n");
     printf("--------------------------------------------------------------------------------\n");
     printf("Grand total parts made =    %5d     vs      order size of   %5d\n", data->made , data->order_size );    
@@ -141,4 +154,20 @@ int main(int argc, char *argv[])
     fclose(supervisor_log);
 
     return 0;
+}
+
+
+// helper method to sort factory id's in ascending order
+void sort(int arr[], int size)
+{
+    int a;
+    for (int i = 0; i < size; i++)
+    {
+        for (int j = i + 1; j < size; ++j)
+        {
+            a = arr[i];
+            arr[i] = arr[j];
+            arr[j] = a;
+        }
+    }
 }

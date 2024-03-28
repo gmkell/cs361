@@ -1,31 +1,33 @@
-Factory #   2 STARTED. My capacity is =    49 parts, in    707 milliSeconds
-Factory #   2: Going to make    49 parts in  707 milliSecs
-Factory #   3 STARTED. My capacity is =    29 parts, in    695 milliSeconds
-Factory #   3: Going to make    29 parts in  695 milliSecs
-Factory #   1 STARTED. My capacity is =    27 parts, in   1054 milliSeconds
-Factory #   1: Going to make    27 parts in 1054 milliSecs
-Factory #   4 STARTED. My capacity is =    32 parts, in    502 milliSeconds
-Factory #   4: Going to make    32 parts in  502 milliSecs
-Factory #   5 STARTED. My capacity is =    14 parts, in   1198 milliSeconds
-Factory #   5: Going to make    14 parts in 1198 milliSecs
-Factory #   4: Going to make    32 parts in  502 milliSecs
-Factory #   3: Going to make    29 parts in  695 milliSecs
-Factory #   2: Going to make    49 parts in  707 milliSecs
-Factory #   4: Going to make    32 parts in  502 milliSecs
-Factory #   1: Going to make    27 parts in 1054 milliSecs
-Factory #   5: Going to make    14 parts in 1198 milliSecs
-Factory #   3: Going to make    29 parts in  695 milliSecs
-Factory #   2: Going to make    49 parts in  707 milliSecs
-Factory #   4: Going to make    32 parts in  502 milliSecs
-Factory #   4: Going to make    32 parts in  502 milliSecs
-Factory #   3: Going to make    29 parts in  695 milliSecs
-Factory #   1: Going to make    27 parts in 1054 milliSecs
-Factory #   2: Going to make    49 parts in  707 milliSecs
-Factory #   5: Going to make    14 parts in 1198 milliSecs
-Factory #   4: Going to make    32 parts in  502 milliSecs
-Factory #   3: Going to make    29 parts in  695 milliSecs
-Factory #   2: Terminating after making a total of    196 parts in      4 iterations
-Factory #   4: Terminating after making a total of    192 parts in      6 iterations
-Factory #   1: Terminating after making a total of    81 parts in      3 iterations
-Factory #   3: Terminating after making a total of    145 parts in      5 iterations
-Factory #   5: Terminating after making a total of    42 parts in      3 iterations
+Factory #   3 STARTED. My capacity is =    42 parts, in    802 milliSeconds
+Factory #   3: Going to make    42 parts in  802 milliSecs
+Factory #   1 STARTED. My capacity is =    40 parts, in    901 milliSeconds
+Factory #   2 STARTED. My capacity is =    40 parts, in   1177 milliSeconds
+Factory #   1: Going to make    40 parts in  901 milliSecs
+Factory #   2: Going to make    40 parts in 1177 milliSecs
+Factory #   5 STARTED. My capacity is =    11 parts, in    971 milliSeconds
+Factory #   5: Going to make    11 parts in  971 milliSecs
+Factory #   4 STARTED. My capacity is =    21 parts, in   1200 milliSeconds
+Factory #   4: Going to make    21 parts in 1200 milliSecs
+Factory #   3: Going to make    42 parts in  802 milliSecs
+Factory #   1: Going to make    40 parts in  901 milliSecs
+Factory #   5: Going to make    11 parts in  971 milliSecs
+Factory #   2: Going to make    40 parts in 1177 milliSecs
+Factory #   4: Going to make    21 parts in 1200 milliSecs
+Factory #   3: Going to make    42 parts in  802 milliSecs
+Factory #   1: Going to make    40 parts in  901 milliSecs
+Factory #   5: Going to make    11 parts in  971 milliSecs
+Factory #   2: Going to make    40 parts in 1177 milliSecs
+Factory #   4: Going to make    21 parts in 1200 milliSecs
+Factory #   3: Going to make    42 parts in  802 milliSecs
+Factory #   1: Going to make    40 parts in  901 milliSecs
+Factory #   5: Going to make    11 parts in  971 milliSecs
+Factory #   3: Going to make    42 parts in  802 milliSecs
+Factory #   2: Going to make    40 parts in 1177 milliSecs
+Factory #   4: Going to make    21 parts in 1200 milliSecs
+Factory #   1: Going to make    20 parts in  901 milliSecs
+Factory #   5: Going to make    11 parts in  971 milliSecs
+Factory #   3: Terminating after making a total of    210 parts in      5 iterations
+Factory #   1: Terminating after making a total of    180 parts in      5 iterations
+Factory #   2: Terminating after making a total of    160 parts in      4 iterations
+Factory #   4: Terminating after making a total of    84 parts in      4 iterations
+Factory #   5: Terminating after making a total of    55 parts in      5 iterations

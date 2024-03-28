@@ -210,11 +210,6 @@ int main(int argc, char* argv[])
 
     // Step 7: Clean up zombie processes (Supervisior + all Factories)
     printf("SALES: Cleanign up after the Supervisor Factory Process\n");
-
-    for (int i = 0; i < num_factories; i++)
-    {
-        kill(factories[i], SIGKILL);
-    }
     
     // Step 8: destroy shmem
     Shmdt(data);

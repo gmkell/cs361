@@ -1,34 +1,41 @@
 SUPERVISOR: Started
-Factory #     4 produced       32 parts in     502 milliSecs
-Factory #     3 produced       29 parts in     695 milliSecs
-Factory #     2 produced       49 parts in     707 milliSecs
-Factory #     4 produced       32 parts in     502 milliSecs
-Factory #     1 produced       27 parts in    1054 milliSecs
-Factory #     5 produced       14 parts in    1198 milliSecs
-Factory #     3 produced       29 parts in     695 milliSecs
-Factory #     2 produced       49 parts in     707 milliSecs
-Factory #     4 produced       32 parts in     502 milliSecs
-Factory #     4 produced       32 parts in     502 milliSecs
-Factory #     3 produced       29 parts in     695 milliSecs
-Factory #     1 produced       27 parts in    1054 milliSecs
-Factory #     2 produced       49 parts in     707 milliSecs
-Factory #     5 produced       14 parts in    1198 milliSecs
-Factory #     4 produced       32 parts in     502 milliSecs
-Factory #     3 produced       29 parts in     695 milliSecs
-Factory #     2 produced       49 parts in     707 milliSecs
-Factory #     2 COMPLETED its task
-Factory #     4 produced       32 parts in     502 milliSecs
-Factory #     4 COMPLETED its task
-Factory #     1 produced       27 parts in    1054 milliSecs
-Factory #     1 COMPLETED its task
-Factory #     3 produced       29 parts in     695 milliSecs
+Factory #     3 produced       42 parts in     802 milliSecs
+Factory #     1 produced       40 parts in     901 milliSecs
+Factory #     5 produced       11 parts in     971 milliSecs
+Factory #     2 produced       40 parts in    1177 milliSecs
+Factory #     4 produced       21 parts in    1200 milliSecs
+Factory #     3 produced       42 parts in     802 milliSecs
+Factory #     1 produced       40 parts in     901 milliSecs
+Factory #     5 produced       11 parts in     971 milliSecs
+Factory #     2 produced       40 parts in    1177 milliSecs
+Factory #     4 produced       21 parts in    1200 milliSecs
+Factory #     3 produced       42 parts in     802 milliSecs
+Factory #     1 produced       40 parts in     901 milliSecs
+Factory #     5 produced       11 parts in     971 milliSecs
+Factory #     3 produced       42 parts in     802 milliSecs
+Factory #     2 produced       40 parts in    1177 milliSecs
+Factory #     4 produced       21 parts in    1200 milliSecs
+Factory #     1 produced       40 parts in     901 milliSecs
+Factory #     5 produced       11 parts in     971 milliSecs
+Factory #     3 produced       42 parts in     802 milliSecs
 Factory #     3 COMPLETED its task
-Factory #     5 produced       14 parts in    1198 milliSecs
+Factory #     1 produced       20 parts in     901 milliSecs
+Factory #     1 COMPLETED its task
+Factory #     2 produced       40 parts in    1177 milliSecs
+Factory #     2 COMPLETED its task
+Factory #     4 produced       21 parts in    1200 milliSecs
+Factory #     4 COMPLETED its task
+Factory #     5 produced       11 parts in     971 milliSecs
 Factory #     5 COMPLETED its task
 
 SUPERVISOR: Manufacturing is complete. Awaiting permission to print final report
 
 ******  SUPERVISOR: Final Report   ******
+Factory #    3 made a total of     689 parts in         23 iterations
+Factory #    1 made a total of     689 parts in         23 iterations
+Factory #    2 made a total of     689 parts in         23 iterations
+Factory #    4 made a total of     689 parts in         23 iterations
+Factory #    5 made a total of     689 parts in         23 iterations
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
-Grand total parts made =     1312     vs      order size of     700
+Grand total parts made =      689     vs      order size of     700

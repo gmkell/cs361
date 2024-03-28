@@ -29,7 +29,7 @@
 #define SEM_MUTEX_NAME "/sem_mutex"
 
 int determine_parts_to_make(int capacity, int remain);
-int smaller_of(int remain, int capacity, shData* shm_data);
+int smaller_of(int capacity, shData* shm_data);
 
 int main(int argc, char* argv[])
 {
@@ -96,14 +96,19 @@ int main(int argc, char* argv[])
     printf("Factory #   %d STARTED. My capacity is =    %d parts, in   %4d milliSeconds\n", factory_ID, capacity, duration);
     fflush(stdout);
 
+    Sem_post(mutex); 
+
     while (remain > 0)
     {
         // determine how many parts to make
         int parts_to_make = determine_parts_to_make(capacity, remain);
+        //int parts_to_make = smaller_of(capacity, shm_data);
         remain = remain - parts_to_make; // update remain
         //shm_data->remain = remain - parts_to_make;
         //shm_data->remain = remain;
-        if (parts_to_make > 0 && (parts_made_by_me + shm_data->made + parts_to_make <= shm_data->order_size))
+        // parts_to_make + shm_data->made + shm_data->remain == shm_data->order_size
+        // && (shm_data->remain + shm_data->made + parts_to_make <= shm_data->order_size)
+        if (parts_to_make > 0 && (parts_to_make + shm_data->made + parts_made_by_me <= shm_data->order_size))
         {
             printf("Factory #   %d: Going to make %5d parts in %4d milliSecs\n", factory_ID, parts_to_make, duration);
             fflush(stdout); 
@@ -119,12 +124,13 @@ int main(int argc, char* argv[])
             iterations++; // increment iterations 
             // update factory record of total # parts made so far
             parts_made_by_me += parts_to_make;
-        } else {
-            break;
+            // shm_data->made += parts_to_make;
+            // shm_data->remain -= parts_to_make;
         }
     }
 
     //shm_data->made += parts_made_by_me; 
+    //shm_data->remain = remain - parts_made_by_me;
 
     // Create & send completion message to Supervisor
     msg.facID = factory_ID;
@@ -138,11 +144,11 @@ int main(int argc, char* argv[])
         factory_ID, parts_made_by_me, iterations);
     fflush(stdout);
 
-    Sem_post(mutex); 
+    //Sem_post(mutex); 
     
     // Cleanup and detach shared memory
     Sem_post(factoryFinished);
-    Shmdt(shm_data);
+    //Shmdt(shm_data);
 
     fclose(factory_log);
 
@@ -162,17 +168,19 @@ int determine_parts_to_make(int capacity, int remain) {
 // factory determine whether it needs to make more parts
 // factory process must not make more parts than what is needed
 // nor exceed its full capacity to the concurrent making of the parts
-int smaller_of(int remain, int capacity, shData* shm_data)
+int smaller_of(int capacity, shData* shm_data)
 {
     int parts_to_make = 0; // initialize to zero in case no parts needed
     // check how many total parts have been made, compare with order_size and remain
-    if (shm_data->made == shm_data->order_size)
+     if (shm_data->remain < capacity)
     {
-        parts_to_make = 0;
+        parts_to_make = shm_data->remain;
+    } else if (shm_data->remain > capacity)
+    {
+        parts_to_make = capacity;
     }
 
     return parts_to_make;
-
 }
 
 
